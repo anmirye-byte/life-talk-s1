@@ -1,4 +1,5 @@
 import streamlit as st
+from openai import OpenAI
 from streamlit_mic_recorder import speech_to_text
 from gtts import gTTS
 import requests
@@ -190,36 +191,26 @@ st.markdown(
 )
 
 
-# =========================================================
-# 4. Ollama 설정
-# =========================================================
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen3:1.7b"
+#======================================
+# --------------------------------------------------
+# OpenAI 설정
+# --------------------------------------------------
+
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 
-# =========================================================
-# 5. Ollama 호출
-# =========================================================
+# --------------------------------------------------
+# OpenAI 호출
+# --------------------------------------------------
+
 def ask_ollama(prompt):
 
-    data = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,
-        "think": False
-    }
-
-    response = requests.post(
-        OLLAMA_URL,
-        json=data,
-        timeout=180
+    response = client.responses.create(
+        model="gpt-5-mini",
+        input=prompt
     )
 
-    response.raise_for_status()
-
-    result = response.json()
-
-    return result["response"].strip()
+    return response.output_text.strip()
 
 
 # =========================================================
