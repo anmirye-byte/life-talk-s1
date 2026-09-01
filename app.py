@@ -18,26 +18,19 @@ VOICE_RECORDER = components.declare_component(
 
 
 def pretty_speech_to_text(language="ko", key=None):
-    """Record browser audio with the custom button, then transcribe it."""
-    recording = VOICE_RECORDER(key=key, default=None)
-    if not recording:
-        return None
-
-    recording_id = recording.get("id")
-    last_id_key = f"_{key}_transcript_id"
-    if st.session_state.get(last_id_key) == recording_id:
-        return None
-
-    st.session_state[last_id_key] = recording_id
-    audio = AudioData(
-        base64.b64decode(recording["audio_base64"]),
-        recording["sample_rate"],
-        recording["sample_width"],
+    text = speech_to_text(
+        language=language,
+        start_prompt="🎤 말하기 시작",
+        stop_prompt="⏹️ 말하기 종료",
+        just_once=True,
+        use_container_width=True,
+        key=key
     )
-    try:
-        return Recognizer().recognize_google(audio, language=language)
-    except Exception:
-        return None
+
+    if text:
+        return text
+
+    return None
 
 
 # =========================================================
