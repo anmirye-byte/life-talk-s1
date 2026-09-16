@@ -2,3 +2,4 @@ streamlit
 openai
 streamlit-mic-recorder
 gTTS
+python-dotenv
