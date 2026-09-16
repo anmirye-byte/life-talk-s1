@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: transparent;
+      font-family: "Malgun Gothic", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 8px 4px 16px 4px;
+      user-select: none;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* 상태 표시 배너 */
+    .status-card {
+      width: 100%;
+      border-radius: 20px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      font-size: 20px;
+      font-weight: 800;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+      border: 2px solid transparent;
+      text-align: center;
+    }
+
+    .status-idle {
+      background: #F4EFE6;
+      color: #73634C;
+      border-color: #E2D7C3;
+    }
+
+    .status-listening {
+      background: #E8F8F5;
+      color: #0E7A63;
+      border-color: #A3E4D7;
+      animation: pulse-border 1.8s infinite;
+    }
+
+    .status-thinking {
+      background: #FEF9E7;
+      color: #9A7D0A;
+      border-color: #F9E79F;
+    }
+
+    .status-speaking-user {
+      background: #E8F8F5;
+      color: #117A65;
+      border-color: #A2D9CE;
+      animation: pulse-soft 1.5s infinite;
+    }
+
+    .status-speaking-ai {
+      background: #EBF5FB;
+      color: #1B4F72;
+      border-color: #AED6F1;
+      animation: pulse-soft 1.5s infinite;
+    }
+
+    .status-error {
+      background: #FDEDEC;
+      color: #922B21;
+      border-color: #FADBD8;
+      font-size: 17px;
+    }
+
+    .status-icon {
+      font-size: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 컨트롤 버튼 (시작 / 종료) */
+    .control-button {
+      width: 100%;
+      min-height: 68px;
+      border-radius: 22px;
+      border: none;
+      font-size: 22px;
+      font-weight: 900;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 6px 16px rgba(120, 100, 40, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .control-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(120, 100, 40, 0.22);
+    }
+
+    .control-button:active {
+      transform: translateY(1px);
+    }
+
+    .btn-start {
+      background: linear-gradient(90deg, #FFAE42 0%, #F5C35B 50%, #4EC9B0 100%);
+    }
+
+    .btn-stop {
+      background: linear-gradient(90deg, #E74C3C 0%, #EC7063 100%);
+      box-shadow: 0 6px 16px rgba(231, 76, 60, 0.25);
+    }
+
+    /* 실시간 인식 말풍선 미리보기 */
+    .transcript-box {
+      min-height: 48px;
+      background: #FFFFFF;
+      border: 1px dashed #D5D8DC;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 17px;
+      color: #566573;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      word-break: keep-all;
+    }
+
+    .transcript-text {
+      color: #1B4F72;
+      font-weight: 700;
+    }
+
+    @keyframes pulse-border {
+      0% { box-shadow: 0 0 0 0 rgba(78, 201, 176, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(78, 201, 176, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(78, 201, 176, 0); }
+    }
+
+    @keyframes pulse-soft {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.01); }
+    }
+
+    /* 반응형 화면 */
+    @media (max-width: 768px) {
+      .status-card {
+        font-size: 18px;
+        padding: 14px 16px;
+      }
+      .control-button {
+        min-height: 58px;
+        font-size: 19px;
+      }
+      .transcript-box {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 상태 안내 영역 -->
+    <div id="statusCard" class="status-card status-idle">
+      <span id="statusIcon" class="status-icon">⏹️</span>
+      <span id="statusText">대화를 시작하려면 아래 버튼을 누르세요.</span>
+    </div>
+
+    <!-- 실시간 사용자 발화 미리보기 -->
+    <div id="transcriptBox" class="transcript-box">
+      <span id="transcriptLabel">💡 준비가 되면 '대화 시작'을 눌러주세요. (종료할 때는 "종료하자"라고 말하세요)</span>
+    </div>
+
+    <!-- 대화 시작 / 종료 버튼 -->
+    <button id="actionBtn" type="button" class="control-button btn-start">
+      <span id="btnIcon">🎤</span>
+      <span id="btnText">연속 대화 시작하기</span>
+    </button>
+  </div>
+
+  <script>
+    // ----------------------------------------------------
+    // Streamlit Component Messaging Protocol
+    // ----------------------------------------------------
+    const send = (type, data = {}) => {
+      window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, '*');
+    };
+
+    const updateHeight = () => {
+      send('streamlit:setFrameHeight', { height: document.body.scrollHeight + 15 });
+    };
+
+    send('streamlit:componentReady', { apiVersion: 1 });
+    window.addEventListener('load', updateHeight);
+
+    // ----------------------------------------------------
+    // UI Elements
+    // ----------------------------------------------------
+    const statusCard = document.getElementById('statusCard');
+    const statusIcon = document.getElementById('statusIcon');
+    const statusText = document.getElementById('statusText');
+    const transcriptBox = document.getElementById('transcriptBox');
+    const transcriptLabel = document.getElementById('transcriptLabel');
+    const actionBtn = document.getElementById('actionBtn');
+    const btnIcon = document.getElementById('btnIcon');
+    const btnText = document.getElementById('btnText');
+
+    // ----------------------------------------------------
+    // State & Variables
+    // ----------------------------------------------------
+    let isSessionActive = false;      // 대화 루프 활성 여부
+    let currentState = 'idle';
+    let recognition = null;
+    let silenceTimer = null;
+    const SILENCE_DELAY_MS = 1000;    // 침묵 감지 시간을 1.0초로 단축하여 즉각 반응
+    let lastProcessedTurnId = null;
+    let currentInterim = '';
+    let currentFinal = '';
+
+    // 종료 명령어 목록
+    const STOP_COMMANDS = ['종료하자', '대화 그만', '그만하자', '대화 종료', '그만', '종료', '끝내자', '그만할래'];
+
+    function isStopCommand(text) {
+      if (!text) return false;
+      const cleaned = text.replace(/[\s.,!?~]/g, '');
+      return STOP_COMMANDS.some(cmd => {
+        const cleanCmd = cmd.replace(/\s/g, '');
+        return cleaned.includes(cleanCmd);
+      });
+    }
+
+    // ----------------------------------------------------
+    // Web Speech API (인식 & 음성합성)
+    // ----------------------------------------------------
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const synth = window.speechSynthesis;
+
+    function setStatus(state, customMessage = null) {
+      currentState = state;
+      statusCard.className = `status-card status-${state}`;
+
+      if (state === 'idle') {
+        statusIcon.textContent = '⏹️';
+        statusText.textContent = customMessage || '대화를 시작하려면 아래 버튼을 누르세요.';
+        actionBtn.className = 'control-button btn-start';
+        btnIcon.textContent = '🎤';
+        btnText.textContent = '연속 대화 시작하기';
+      } else if (state === 'listening') {
+        statusIcon.textContent = '🟢';
+        statusText.textContent = customMessage || '듣고 있어요... 한국어로 편하게 말씀하세요.';
+        actionBtn.className = 'control-button btn-stop';
+        btnIcon.textContent = '⏹️';
+        btnText.textContent = '대화 종료하기';
+      } else if (state === 'thinking') {
+        statusIcon.textContent = '⚡';
+        statusText.textContent = customMessage || '영어 표현과 AI 답변을 준비하고 있어요...';
+        actionBtn.className = 'control-button btn-stop';
+        btnIcon.textContent = '⏹️';
+        btnText.textContent = '대화 종료하기';
+      } else if (state === 'speaking-user') {
+        statusIcon.textContent = '🔤';
+        statusText.textContent = customMessage || '내 말의 영어 표현을 천천히 들려드려요...';
+        actionBtn.className = 'control-button btn-stop';
+        btnIcon.textContent = '⏹️';
+        btnText.textContent = '대화 종료하기';
+      } else if (state === 'speaking-ai') {
+        statusIcon.textContent = '🤖';
+        statusText.textContent = customMessage || 'AI가 쉬운 영어로 답변하는 중입니다...';
+        actionBtn.className = 'control-button btn-stop';
+        btnIcon.textContent = '⏹️';
+        btnText.textContent = '대화 종료하기';
+      } else if (state === 'error') {
+        statusIcon.textContent = '⚠️';
+        statusText.textContent = customMessage || '오류가 발생했습니다.';
+      }
+      updateHeight();
+    }
+
+    function initRecognition() {
+      if (!SpeechRecognition) {
+        setStatus('error', '이 브라우저는 실시간 음성인식을 지원하지 않습니다. Chrome 또는 Edge 브라우저를 사용해 주세요.');
+        return null;
+      }
+
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = 'ko-KR'; // 한국어 인식 고정
+
+      rec.onstart = () => {
+        if (isSessionActive && currentState !== 'thinking' && !currentState.startsWith('speaking')) {
+          setStatus('listening');
+        }
+      };
+
+      rec.onresult = (event) => {
+        if (!isSessionActive || currentState === 'thinking' || currentState.startsWith('speaking')) return;
+
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            currentFinal += ' ' + event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+
+        currentInterim = interim.trim();
+        const fullLiveText = (currentFinal + ' ' + currentInterim).trim();
+
+        if (fullLiveText) {
+          // 실시간 종료 명령 감지 시 즉각 종료!
+          if (isStopCommand(fullLiveText)) {
+            console.log('Voice stop command detected in live speech:', fullLiveText);
+            transcriptLabel.innerHTML = `⏹️ 종료 명령 감지: <span class="transcript-text">"${fullLiveText}"</span>`;
+            stopSession('말씀하신 명령에 따라 대화를 종료했습니다.');
+            return;
+          }
+
+          transcriptLabel.innerHTML = `🗣️ 말씀 중: <span class="transcript-text">"${fullLiveText}"</span>`;
+          resetSilenceTimer();
+        }
+      };
+
+      rec.onerror = (event) => {
+        console.warn('SpeechRecognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          setStatus('error', '마이크 권한이 허용되지 않았습니다. 브라우저 설정에서 마이크를 허용해 주세요.');
+          stopSession();
+        } else if (event.error === 'no-speech') {
+          if (isSessionActive && currentState === 'listening') {
+            resetSilenceTimer();
+          }
+        }
+      };
+
+      rec.onend = () => {
+        if (isSessionActive && currentState === 'listening') {
+          try {
+            rec.start();
+          } catch (_) {}
+        }
+      };
+
+      return rec;
+    }
+
+    function resetSilenceTimer() {
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        handleSilenceTimeout();
+      }, SILENCE_DELAY_MS);
+    }
+
+    function handleSilenceTimeout() {
+      const finalUtterance = (currentFinal + ' ' + currentInterim).trim();
+      if (!isSessionActive || currentState !== 'listening') return;
+
+      if (finalUtterance.length > 0) {
+        // 1. 종료 명령 검사
+        if (isStopCommand(finalUtterance)) {
+          console.log('Voice stop command detected on silence timeout:', finalUtterance);
+          stopSession('말씀하신 명령에 따라 대화를 종료했습니다.');
+          return;
+        }
+
+        // 2. 정상 한국어 발화인 경우 서버로 전송
+        setStatus('thinking');
+        transcriptLabel.innerHTML = `💬 내 말: <span class="transcript-text">"${finalUtterance}"</span>`;
+
+        try {
+          if (recognition) recognition.stop();
+        } catch (_) {}
+
+        send('streamlit:setComponentValue', {
+          value: {
+            action: 'user_spoken',
+            text: finalUtterance,
+            language: 'ko-KR',
+            timestamp: Date.now()
+          }
+        });
+
+        currentFinal = '';
+        currentInterim = '';
+      } else {
+        resetSilenceTimer();
+      }
+    }
+
+    function startListening() {
+      if (!isSessionActive) return;
+      currentFinal = '';
+      currentInterim = '';
+      transcriptLabel.innerHTML = '한국어로 편하게 말씀하세요... (종료할 땐 "종료하자"라고 말씀하세요)';
+
+      setStatus('listening');
+
+      if (!recognition) {
+        recognition = initRecognition();
+      } else {
+        recognition.lang = 'ko-KR';
+      }
+
+      try {
+        recognition.start();
+      } catch (e) {
+        console.log('Recognition start note:', e);
+      }
+
+      resetSilenceTimer();
+    }
+
+    // ----------------------------------------------------
+    // 초고속 브라우저 speechSynthesis 연속 재생 (내 영어 -> AI 답변 -> 마이크 재개)
+    // ----------------------------------------------------
+    function speakText(text, onEndedCallback) {
+      if (!synth) {
+        console.warn('speechSynthesis not supported.');
+        if (onEndedCallback) onEndedCallback();
+        return;
+      }
+
+      synth.cancel(); // 이전 발화 취소
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.85; // 초보자를 위한 또박또박 천천히 읽기 속도
+      utterance.pitch = 1.0;
+
+      // 가능한 경우 Google US English 또는 자연스러운 영문 음성 선택
+      const voices = synth.getVoices();
+      const enVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Zira')))
+                   || voices.find(v => v.lang.startsWith('en'));
+      if (enVoice) {
+        utterance.voice = enVoice;
+      }
+
+      utterance.onend = () => {
+        if (onEndedCallback) onEndedCallback();
+      };
+
+      utterance.onerror = (err) => {
+        console.error('SpeechSynthesis error:', err);
+        if (onEndedCallback) onEndedCallback();
+      };
+
+      synth.speak(utterance);
+    }
+
+    function playSequentialSpeech(userEng, aiEng, turnId, shouldAutoListen = true) {
+      if (lastProcessedTurnId === turnId) return;
+      lastProcessedTurnId = turnId;
+
+      // Step 1: 내 영어 표현 읽기 (즉시 시작!)
+      if (userEng) {
+        setStatus('speaking-user');
+        speakText(userEng, () => {
+          console.log('Step 1 (user_eng) finished.');
+          // Step 2: 0.3초 후 AI 답변 읽기
+          setTimeout(() => {
+            playAiSpeech(aiEng, shouldAutoListen);
+          }, 300);
+        });
+      } else {
+        playAiSpeech(aiEng, shouldAutoListen);
+      }
+    }
+
+    function playAiSpeech(aiEng, shouldAutoListen = true) {
+      if (aiEng) {
+        setStatus('speaking-ai');
+        speakText(aiEng, () => {
+          console.log('Step 2 (ai_eng) finished.');
+          // Step 3: 답변이 끝났을 때 자동 마이크 켜기 여부 결정
+          if (isSessionActive && shouldAutoListen) {
+            setTimeout(() => {
+              if (isSessionActive) {
+                startListening();
+              }
+            }, 500);
+          } else {
+            setStatus('idle', '답변을 들려드렸습니다. 다음 말씀을 입력하거나 말해주세요.');
+          }
+        });
+      } else {
+        if (isSessionActive && shouldAutoListen) {
+          startListening();
+        } else {
+          setStatus('idle');
+        }
+      }
+    }
+
+    function startSession() {
+      isSessionActive = true;
+      if (synth) synth.cancel();
+
+      send('streamlit:setComponentValue', {
+        value: {
+          action: 'session_started',
+          timestamp: Date.now()
+        }
+      });
+      startListening();
+    }
+
+    function stopSession(customMsg = null) {
+      isSessionActive = false;
+      clearTimeout(silenceTimer);
+
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+      }
+
+      if (synth) {
+        try { synth.cancel(); } catch (_) {}
+      }
+
+      setStatus('idle', customMsg || '대화가 종료되었습니다. 다시 시작하려면 버튼을 누르세요.');
+      transcriptLabel.innerHTML = customMsg || '⏹️ 대화가 종료되었습니다.';
+
+      send('streamlit:setComponentValue', {
+        value: {
+          action: 'session_stopped',
+          timestamp: Date.now()
+        }
+      });
+    }
+
+    // ----------------------------------------------------
+    // Button Event Listener
+    // ----------------------------------------------------
+    actionBtn.addEventListener('click', () => {
+      if (!isSessionActive) {
+        startSession();
+      } else {
+        stopSession();
+      }
+    });
+
+    // ----------------------------------------------------
+    // Streamlit Render Message Listener
+    // ----------------------------------------------------
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'streamlit:render') {
+        const args = event.data.args || {};
+
+        if (args.force_stop && isSessionActive) {
+          stopSession('대화가 종료되었습니다.');
+        }
+
+        // 새 턴의 텍스트가 도착했을 때 (user_eng, ai_eng)
+        if (args.turn_id && args.turn_id !== lastProcessedTurnId) {
+          const shouldAutoListen = (args.auto_listen !== false) && isSessionActive;
+          playSequentialSpeech(args.user_eng, args.ai_eng, args.turn_id, shouldAutoListen);
+        }
+      }
+    });
+
+    // 음성 목록 비동기 로드 대응
+    if (synth && synth.onvoiceschanged !== undefined) {
+      synth.onvoiceschanged = () => synth.getVoices();
+    }
+  </script>
+</body>
+</html>
