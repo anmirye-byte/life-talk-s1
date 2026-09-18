@@ -184,7 +184,12 @@
 
     <!-- 실시간 사용자 발화 미리보기 -->
     <div id="transcriptBox" class="transcript-box">
-      <span id="transcriptLabel">💡 준비가 되면 '대화 시작'을 눌러주세요. (종료할 때는 "종료하자"라고 말하세요)</span>
+        <span id="transcriptLabel">💬 준비가 되면 '대화 시작'을 눌러주세요.</span>
+    </div>
+
+    <!-- 영어 번역문 표시 -->
+    <div id="translationBox" class="transcript-box" style="display:none; margin-top:10px;">
+        <span id="translationLabel"></span>
     </div>
 
     <!-- 대화 시작 / 종료 버튼 -->
@@ -233,6 +238,8 @@ setTimeout(updateHeight, 1000);
     const statusText = document.getElementById('statusText');
     const transcriptBox = document.getElementById('transcriptBox');
     const transcriptLabel = document.getElementById('transcriptLabel');
+    const translationBox = document.getElementById('translationBox');
+    const translationLabel = document.getElementById('translationLabel');
     const actionBtn = document.getElementById('actionBtn');
     const btnIcon = document.getElementById('btnIcon');
     const btnText = document.getElementById('btnText');
@@ -328,28 +335,7 @@ setTimeout(updateHeight, 1000);
       rec.onresult = (event) => {
         if (!isSessionActive || currentState === 'thinking' || currentState.startsWith('speaking')) return;
 
-let interim = '';
 
-for (let i = event.resultIndex; i < event.results.length; i++) {
-    const piece = event.results[i][0].transcript.trim();
-
-    if (event.results[i].isFinal) {
-        const oldFinal = currentFinal.trim();
-
-        if (!oldFinal) {
-            currentFinal = piece;
-        } else if (piece === oldFinal || oldFinal.endsWith(piece)) {
-            // 같은 문장이 다시 들어오면 추가하지 않음
-        } else if (piece.startsWith(oldFinal)) {
-            // 기존 문장을 포함한 더 긴 결과이면 새 결과로 교체
-            currentFinal = piece;
-        } else {
-            currentFinal = `${oldFinal} ${piece}`.trim();
-        }
-    } else {
-        interim += piece + ' ';
-    }
-}
 
         currentInterim = interim.trim();
         const fullLiveText = (currentFinal + ' ' + currentInterim).trim();
@@ -589,6 +575,7 @@ for (let i = event.resultIndex; i < event.results.length; i++) {
     // Streamlit Render Message Listener
     // ----------------------------------------------------
     window.addEventListener('message', (event) => {
+
       if (event.data.type === 'streamlit:render') {
         const args = event.data.args || {};
 
@@ -598,6 +585,12 @@ for (let i = event.resultIndex; i < event.results.length; i++) {
 
         // 새 턴의 텍스트가 도착했을 때 (user_eng, ai_eng)
         if (args.turn_id && args.turn_id !== lastProcessedTurnId) {
+      if (args.user_eng) {
+          translationBox.style.display = 'block';
+          translationLabel.textContent = '🇺🇸 ' + args.user_eng;
+          updateHeight();
+      }          
+          
           const shouldAutoListen = (args.auto_listen !== false) && isSessionActive;
           playSequentialSpeech(args.user_eng, args.ai_eng, args.turn_id, shouldAutoListen);
         }
