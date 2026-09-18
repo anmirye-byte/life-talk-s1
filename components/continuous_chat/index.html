@@ -192,6 +192,11 @@
         <span id="translationLabel"></span>
     </div>
 
+    <div id="aiAnswerBox" class="transcript-box" style="display:none; margin-top:10px;">
+        <div id="aiAnswerLabel"></div>
+        <div id="aiKorLabel" style="margin-top:8px;"></div>
+    </div>
+
     <!-- 대화 시작 / 종료 버튼 -->
     <button id="actionBtn" type="button" class="control-button btn-start">
       <span id="btnIcon">🎤</span>
@@ -240,6 +245,9 @@ setTimeout(updateHeight, 1000);
     const transcriptLabel = document.getElementById('transcriptLabel');
     const translationBox = document.getElementById('translationBox');
     const translationLabel = document.getElementById('translationLabel');
+    const aiAnswerBox = document.getElementById('aiAnswerBox');
+    const aiAnswerLabel = document.getElementById('aiAnswerLabel');
+    const aiKorLabel = document.getElementById('aiKorLabel');
     const actionBtn = document.getElementById('actionBtn');
     const btnIcon = document.getElementById('btnIcon');
     const btnText = document.getElementById('btnText');
@@ -604,12 +612,25 @@ for (let i = event.resultIndex; i < event.results.length; i++) {
 
         // 새 턴의 텍스트가 도착했을 때 (user_eng, ai_eng)
         if (args.turn_id && args.turn_id !== lastProcessedTurnId) {
+          
       if (args.user_eng) {
           translationBox.style.display = 'block';
           translationLabel.textContent = '🇺🇸 ' + args.user_eng;
           updateHeight();
       }          
-          
+          if (args.ai_eng || args.ai_kor) {
+              aiAnswerBox.style.display = 'block';
+
+              aiAnswerLabel.textContent = args.ai_eng
+                  ? '🤖 ' + args.ai_eng
+                  : '';
+
+              aiKorLabel.textContent = args.ai_kor
+                  ? '💡 ' + args.ai_kor
+                  : '';
+
+              updateHeight();
+          }          
           const shouldAutoListen = (args.auto_listen !== false) && isSessionActive;
           playSequentialSpeech(args.user_eng, args.ai_eng, args.turn_id, shouldAutoListen);
         }

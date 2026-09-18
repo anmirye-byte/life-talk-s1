@@ -761,6 +761,10 @@ if "latest_user_eng" not in st.session_state:
     st.session_state.latest_user_eng = ""
 if "latest_ai_eng" not in st.session_state:
     st.session_state.latest_ai_eng = ""
+
+if "latest_ai_kor" not in st.session_state:
+    st.session_state.latest_ai_kor = ""
+
 if "latest_turn_id" not in st.session_state:
     st.session_state.latest_turn_id = 0
 if "last_processed_timestamp" not in st.session_state:
@@ -814,6 +818,7 @@ with tab_continuous:
     comp_result = continuous_chat_component(
         user_eng=st.session_state.get("latest_user_eng", ""),
         ai_eng=st.session_state.get("latest_ai_eng", ""),
+        ai_kor=st.session_state.get("latest_ai_kor", ""),
         turn_id=st.session_state.get("latest_turn_id", 0),
         auto_listen=st.session_state.get("auto_listen_flag", True),
         force_stop=st.session_state.get("force_stop", False),
@@ -871,6 +876,7 @@ with tab_continuous:
                         # 브라우저 컴포넌트로 전달 -> 브라우저 speechSynthesis로 즉시 발음 & 다음 턴 마이크 켜기!
                         st.session_state.latest_user_eng = u_eng
                         st.session_state.latest_ai_eng = a_eng
+                        st.session_state.latest_ai_kor = a_kor
                         st.session_state.latest_turn_id = timestamp
                         st.session_state.auto_listen_flag = True
                         st.rerun()
