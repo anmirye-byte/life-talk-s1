@@ -202,12 +202,28 @@
       window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, '*');
     };
 
-    const updateHeight = () => {
-      send('streamlit:setFrameHeight', { height: document.body.scrollHeight + 15 });
-    };
+const updateHeight = () => {
+    const height = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+    );
 
-    send('streamlit:componentReady', { apiVersion: 1 });
-    window.addEventListener('load', updateHeight);
+    send('streamlit:setFrameHeight', { height: height + 20 });
+};
+
+send('streamlit:componentReady', { apiVersion: 1 });
+
+window.addEventListener('load', updateHeight);
+window.addEventListener('resize', updateHeight);
+
+const resizeObserver = new ResizeObserver(() => {
+    updateHeight();
+});
+
+resizeObserver.observe(document.body);
+
+setTimeout(updateHeight, 300);
+setTimeout(updateHeight, 1000);
 
     // ----------------------------------------------------
     // UI Elements

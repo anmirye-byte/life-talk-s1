@@ -717,7 +717,9 @@ def ask_continuous_turn(user_text, input_lang="ko", conversation_history=None):
             "ai_eng": data.get("ai_eng", "").strip(),
             "ai_kor": data.get("ai_kor", "").strip(),
         }
-    except Exception:
+    except Exception as e:
+        st.error(f"AI 연속대화 오류: {type(e).__name__}: {e}")
+
         if input_lang == "en":
             return {
                 "user_eng": user_text,
