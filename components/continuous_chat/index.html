@@ -334,8 +334,27 @@ setTimeout(updateHeight, 1000);
 
       rec.onresult = (event) => {
         if (!isSessionActive || currentState === 'thinking' || currentState.startsWith('speaking')) return;
+let interim = '';
 
+for (let i = event.resultIndex; i < event.results.length; i++) {
+    const piece = event.results[i][0].transcript.trim();
 
+    if (event.results[i].isFinal) {
+        const oldFinal = currentFinal.trim();
+
+        if (!oldFinal) {
+            currentFinal = piece;
+        } else if (piece === oldFinal || oldFinal.endsWith(piece)) {
+            // 같은 문장이 다시 들어오면 추가하지 않음
+        } else if (piece.startsWith(oldFinal)) {
+            currentFinal = piece;
+        } else {
+            currentFinal = `${oldFinal} ${piece}`.trim();
+        }
+    } else {
+        interim += piece + ' ';
+    }
+}
 
         currentInterim = interim.trim();
         const fullLiveText = (currentFinal + ' ' + currentInterim).trim();
